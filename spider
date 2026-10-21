@@ -17,9 +17,11 @@ if args.r:
 
 if args.l:
 	print(f"Maximum depth level set to: {args.l}")
+	# reject non-numeric and negative values
 
 if args.p:
 	print(f"Download path set to: {args.p}")
 
 else:
 	print(f"Downloading images from: {args.URL}") # n ta printando qnd ./spider URL
+	# reject invalid URLs
