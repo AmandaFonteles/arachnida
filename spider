@@ -4,6 +4,12 @@
 import argparse
 from urllib.parse import urlparse
 
+import requests
+
+HEADERS = {
+	'User-Agent': 'Mozilla/5.0 (compatible; arachnida-spider/1.0)'
+}
+
 def build_parser():
 	parser = argparse.ArgumentParser(description='Download images from a URL.')
 	parser.add_argument('URL', help='URL to download images from.')
@@ -31,20 +37,35 @@ def validate_args(args, parser):
 		parser.error('URL must be valid.')
 
 
-def print_args(args):
-	print(f'URL: {args.URL}')
-	if args.r:
-		print('Recursive download: Enabled')
-	if args.l:
-		print(f'Maximum depth: {args.l}')
-	print(f'Path: {args.p}')
+# setting the headers to avoid 403 error:
+# if we don't set the headers, it'll be set by default to 'python-requests/x.x.x'
+# which reads as a script and can be seen as a bot
+# some websites will block our requests and return a 403 error.
+def fetch_page(url):
+	res = requests.get(url, headers=HEADERS, timeout=3)
+	# same as res.raise_for_status() but with a custom error message
+	if res.status_code >= 400:
+		raise requests.HTTPError(f'HTTP error {res.status_code} for URL: {url}')
+	return res.text
+
+
+# def print_args(args):
+# 	print(f'URL: {args.URL}')
+# 	if args.r:
+# 		print('Recursive download: Enabled')
+# 	if args.l:
+# 		print(f'Maximum depth: {args.l}')
+# 	print(f'Path: {args.p}')
 
 
 def main():
 	parser = build_parser()
 	args = parser.parse_args()
 	validate_args(args, parser)
-	print_args(args)
+	# needs to use try-except block to catch the 
+	# HTTPError exception and print a custom error message (?)
+	url_text = fetch_page(args.URL)
+	# print_args(args)
 
 if __name__ == '__main__':
 	main()
