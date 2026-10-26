@@ -3,6 +3,7 @@
 # Library imports
 import argparse
 from urllib.parse import urlparse
+from html.parser import HTMLParser
 
 import requests
 
@@ -43,11 +44,22 @@ def validate_args(args, parser):
 # some websites will block our requests and return a 403 error.
 def fetch_page(url):
 	res = requests.get(url, headers=HEADERS, timeout=3)
-	# same as res.raise_for_status() but with a custom error message
+	# same as res.raise_for_status(), but with a custom error message
 	if res.status_code >= 400:
 		raise requests.HTTPError(f'HTTP error {res.status_code} for URL: {url}')
 	return res.text
+	
 
+def get_images_from_page(html, base_url, path):
+	#override the HTMLParser class to extract image URLs from the HTML
+	class ImageParser(HTMLParser):
+		
+		def handle_starttag(self, tag, attrs):
+			print('Tag:', tag)
+			print('Attributes:', attrs)
+	
+	pars_html = ImageParser()
+	pars_html.feed(html)
 
 # def print_args(args):
 # 	print(f'URL: {args.URL}')
@@ -62,9 +74,16 @@ def main():
 	parser = build_parser()
 	args = parser.parse_args()
 	validate_args(args, parser)
+
 	# needs to use try-except block to catch the 
-	# HTTPError exception and print a custom error message (?)
-	url_text = fetch_page(args.URL)
+	# HTTPError exception and print a custom error message
+	try:
+		url_text = fetch_page(args.URL)
+	except requests.RequestException as e:
+		print(f'Error fetching {args.URL}: {e}')
+		return
+
+	get_images_from_page(url_text, args.URL, args.p)
 	# print_args(args)
 
 if __name__ == '__main__':
