@@ -2,7 +2,7 @@
 
 # 1. imports: standard library first, then third-party
 import argparse
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin, urldefrag, urlsplit
 from html.parser import HTMLParser
 
 import requests
@@ -11,6 +11,8 @@ import requests
 HEADERS = {
 	'User-Agent': 'Mozilla/5.0 (compatible; arachnida-spider/1.0)'
 }
+EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
+
 
 # 3. classes
 class ExtractImgLink(HTMLParser):
@@ -64,11 +66,30 @@ def fetch_page(url):
 	if res.status_code >= 400:
 		res.raise_for_status()
 	return res.text
-	
 
-def get_images_from_page(html, base_url, path):
+
+def normalize_url(urls, base_url, type):
+	normalized_urls = []
+	for url in urls:
+		if type == 'link' and urlsplit(url).scheme not in ('http', 'https'):
+			continue
+		if type == 'image':
+			path = urlsplit(url).path.lower()
+			if path.endswith(tuple(EXTENSIONS)) is False:
+				continue
+		absolute = urljoin(base_url, url)
+		no_frag = urldefrag(absolute).url
+		normalized_urls.append(no_frag)
+	return normalized_urls
+
+
+def parse_img_links(html, base_url, path):
 	get_img_link = ExtractImgLink()
 	get_img_link.feed(html)
+
+	get_img_link.images = normalize_url(get_img_link.images, base_url, type='image')
+	get_img_link.links = normalize_url(get_img_link.links, base_url, type='link')
+	
 	print(get_img_link.images)
 	print(get_img_link.links)
 
@@ -85,7 +106,7 @@ def main():
 		# we shouldn't return when -r is used, since the crawler should continue to run and try to fetch other pages, if any
 		return
 
-	get_images_from_page(url_text, args.URL, args.p)
+	parse_img_links(url_text, args.URL, args.p)
 
 
 # 5. entry point
