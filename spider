@@ -46,7 +46,8 @@ def fetch_page(url):
 	res = requests.get(url, headers=HEADERS, timeout=3)
 	# same as res.raise_for_status(), but with a custom error message
 	if res.status_code >= 400:
-		raise requests.HTTPError(f'HTTP error {res.status_code} for URL: {url}')
+		res.raise_for_status()
+		# raise requests.HTTPError(f'HTTP error {res.status_code} for URL: {url}')
 	return res.text
 	
 
